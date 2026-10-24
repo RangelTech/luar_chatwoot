@@ -21,6 +21,8 @@ const files = ref([]);
 const picker = ref(null);
 const dictating = ref(false);
 let recognition = null;
+let localTranscriber = null;
+let localTranscriberPromise = null;
 
 const canSend = computed(
   () =>
@@ -60,7 +62,8 @@ const onDrop = event => {
 // Spec 12 §5: privacidade e latência primeiro. Chrome/Edge transcrevem o
 // ditado diretamente no navegador; nenhum áudio é enviado à LUAR nesse fluxo.
 const startBrowserDictation = () => {
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const Recognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) return false;
 
   const initialDraft = draft.value;
@@ -68,23 +71,32 @@ const startBrowserDictation = () => {
   recognition.lang = 'pt-BR';
   recognition.continuous = false;
   recognition.interimResults = true;
-  recognition.onstart = () => { dictating.value = true; };
+  recognition.onstart = () => {
+    dictating.value = true;
+  };
   recognition.onresult = event => {
     let transcript = '';
-    for (let i = event.resultIndex; i < event.results.length; i += 1) transcript += event.results[i][0].transcript;
-    draft.value = [initialDraft, transcript.trim()].filter(Boolean).join(initialDraft && transcript ? ' ' : '');
+    for (let i = event.resultIndex; i < event.results.length; i += 1)
+      transcript += event.results[i][0].transcript;
+    draft.value = [initialDraft, transcript.trim()]
+      .filter(Boolean)
+      .join(initialDraft && transcript ? ' ' : '');
   };
   recognition.onerror = event => {
     if (event.error !== 'aborted') useAlert(t('RAGENT.CHAT.DICTATION_ERROR'));
   };
-  recognition.onend = () => { dictating.value = false; recognition = null; };
+  recognition.onend = () => {
+    dictating.value = false;
+    recognition = null;
+  };
   recognition.start();
   return true;
 };
 
 const stopBrowserDictation = () => recognition?.stop();
 
-// Spec 11 §3: microfone. Grava, anexa o áudio e o motor transcreve antes de passar ao agente.
+// Spec 12 §5: quando Web Speech não existe, a frase segue para Whisper WASM/WebGPU
+// no próprio browser. Áudio nunca vai para o motor nem consome GPU da VPS.
 const recording = ref(false);
 const seconds = ref(0);
 let recorder = null;
@@ -98,32 +110,78 @@ const stopTimer = () => {
 };
 
 const transcribing = ref(false);
-const toBase64 = file =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
-// Ditado: transcreve e escreve no campo. Sem provedor de voz, anexa o áudio (o motor transcreve ao enviar).
-const dictate = async file => {
+const browserAudio = async file => {
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context || !window.OfflineAudioContext)
+    throw new Error('audio-context-unsupported');
+
+  const context = new Context();
+  try {
+    const decoded = await context.decodeAudioData(await file.arrayBuffer());
+    const sampleRate = 16_000;
+    const offline = new OfflineAudioContext(
+      1,
+      Math.ceil(decoded.duration * sampleRate),
+      sampleRate
+    );
+    const source = offline.createBufferSource();
+    source.buffer = decoded;
+    source.connect(offline.destination);
+    source.start();
+    return (await offline.startRendering()).getChannelData(0);
+  } finally {
+    await context.close();
+  }
+};
+
+const loadLocalTranscriber = async () => {
+  if (localTranscriber) return localTranscriber;
+  if (!localTranscriberPromise) {
+    localTranscriberPromise = import('@huggingface/transformers').then(
+      async ({ env, pipeline }) => {
+        // O artefato do modelo fica no Cache Storage do navegador após o primeiro uso.
+        // Só pesos são baixados; amostras de áudio não saem do dispositivo.
+        env.useBrowserCache = true;
+        localTranscriber = await pipeline(
+          'automatic-speech-recognition',
+          'Xenova/whisper-tiny',
+          { device: 'wasm' }
+        );
+        return localTranscriber;
+      }
+    );
+  }
+  return localTranscriberPromise;
+};
+
+const dictateLocally = async file => {
   transcribing.value = true;
   try {
-    const { data } = await window.axios.post(
-      `/api/v1/accounts/${window.location.pathname.split('/')[3]}/rt_ai/chats/transcribe`,
-      { content_b64: await toBase64(file), mime: file.type }
-    );
-    if (data.text) {
-      draft.value = draft.value ? `${draft.value} ${data.text}` : data.text;
-      return;
-    }
-    addFiles([file]);
+    const [transcribe, samples] = await Promise.all([
+      loadLocalTranscriber(),
+      browserAudio(file),
+    ]);
+    const result = await transcribe(samples, {
+      language: 'portuguese',
+      task: 'transcribe',
+    });
+    const text = result?.text?.trim();
+    if (!text) throw new Error('empty-transcript');
+    draft.value = draft.value ? `${draft.value} ${text}` : text;
   } catch (error) {
-    addFiles([file]);
-    useAlert(t('RAGENT.CHAT.MIC_NO_DICTATION'));
+    useAlert(t('RAGENT.CHAT.DICTATION_ERROR'));
   } finally {
     transcribing.value = false;
+  }
+};
+
+const stopRecording = (cancel = false) => {
+  stopTimer();
+  recording.value = false;
+  if (recorder && recorder.state !== 'inactive') {
+    recorder.cancelled = cancel === true;
+    recorder.stop();
   }
 };
 
@@ -140,10 +198,14 @@ const startRecording = async () => {
       stream.getTracks().forEach(tr => tr.stop());
       if (recorder.cancelled) return;
       const ext = mime.startsWith('audio/mp4') ? 'm4a' : 'webm';
-      const file = new File([new Blob(chunks, { type: mime })], `voz-${Date.now()}.${ext}`, {
-        type: mime,
-      });
-      dictate(file);
+      const file = new File(
+        [new Blob(chunks, { type: mime })],
+        `voz-${Date.now()}.${ext}`,
+        {
+          type: mime,
+        }
+      );
+      dictateLocally(file);
     };
     recorder.start();
     recording.value = true;
@@ -159,15 +221,6 @@ const startRecording = async () => {
 
 const startDictation = () => {
   if (!startBrowserDictation()) startRecording();
-};
-
-const stopRecording = (cancel = false) => {
-  stopTimer();
-  recording.value = false;
-  if (recorder && recorder.state !== 'inactive') {
-    recorder.cancelled = cancel === true;
-    recorder.stop();
-  }
 };
 
 onBeforeUnmount(() => {
@@ -255,13 +308,39 @@ const submit = () => {
           :disabled="sending || disabled"
           @click="startDictation"
         />
-        <div v-else-if="dictating" class="flex items-center gap-2 text-body-main text-n-ruby-11">
-          <span class="size-2 rounded-full bg-n-ruby-9 animate-pulse" aria-hidden="true" />
+        <div
+          v-else-if="dictating"
+          class="flex items-center gap-2 text-body-main text-n-ruby-11"
+        >
+          <span
+            class="size-2 rounded-full bg-n-ruby-9 animate-pulse"
+            aria-hidden="true"
+          />
           {{ t('RAGENT.CHAT.DICTATING') }}
-          <Button :label="t('RAGENT.CHAT.MIC_DONE')" size="sm" @click="stopBrowserDictation" />
+          <Button
+            :label="t('RAGENT.CHAT.MIC_DONE')"
+            size="sm"
+            @click="stopBrowserDictation"
+          />
         </div>
-        <div v-else class="flex items-center gap-2 text-body-main text-n-ruby-11">
-          <span class="size-2 rounded-full bg-n-ruby-9 animate-pulse" aria-hidden="true" />
+        <div
+          v-else-if="transcribing"
+          class="flex items-center gap-2 text-body-main text-n-slate-11"
+        >
+          <span
+            class="i-lucide-loader-circle size-4 animate-spin"
+            aria-hidden="true"
+          />
+          {{ t('RAGENT.CHAT.TRANSCRIBING_LOCAL') }}
+        </div>
+        <div
+          v-else
+          class="flex items-center gap-2 text-body-main text-n-ruby-11"
+        >
+          <span
+            class="size-2 rounded-full bg-n-ruby-9 animate-pulse"
+            aria-hidden="true"
+          />
           {{ timeLabel }}
           <Button
             :label="t('RAGENT.CHAT.MIC_DONE')"
