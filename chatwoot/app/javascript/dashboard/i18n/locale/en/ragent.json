@@ -72,6 +72,9 @@
         "SUBAGENTS_PROGRESS": "{done} of {total} finished"
       },
       "MIC": "Record audio",
+      "DICTATING": "Listening…",
+      "DICTATION_ERROR": "This browser could not transcribe locally. Try again or use an up-to-date browser.",
+      "TRANSCRIBING_LOCAL": "Transcribing on your device…",
       "MIC_DONE": "Dictate",
       "MIC_CANCEL": "Cancel",
       "MIC_NO_DICTATION": "No voice provider; the audio was attached (add Groq or OpenAI under Providers to dictate).",
