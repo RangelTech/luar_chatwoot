@@ -696,7 +696,33 @@ const deleteCustomProviderModel = async model => {
         </div>
       </section>
     </div>
-    <div v-if="items.length && key !== 'providers'" class="overflow-x-auto rounded-xl border border-n-weak">
+    <section v-if="items.length && key === 'combos'" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <article
+        v-for="it in items"
+        :key="it.id || JSON.stringify(it)"
+        class="group flex min-h-44 flex-col gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-5 shadow-sm transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-n-brand"
+      >
+        <header class="flex items-start gap-3">
+          <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-n-brand/10 text-n-brand">
+            <span class="i-lucide-layers-3 size-5" aria-hidden="true" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <h2 class="truncate text-heading-3 text-n-slate-12">{{ it.name }}</h2>
+            <p class="mt-1 text-sm text-n-slate-11">{{ it.strategy === 'fusion' ? 'Fusão com juiz' : (it.strategy === 'round_robin' ? 'Rodízio' : 'Fallback') }}</p>
+          </div>
+        </header>
+        <div class="flex flex-wrap gap-2" aria-label="Modelos do combo">
+          <span v-for="model in (Array.isArray(it.models) ? it.models : [it.models]).filter(Boolean)" :key="model" class="max-w-full truncate rounded-full bg-n-alpha-2 px-2.5 py-1 text-sm text-n-slate-12">
+            {{ model }}
+          </span>
+        </div>
+        <footer v-if="canManage && it.id" class="mt-auto flex items-center justify-end gap-2 border-t border-n-weak pt-3">
+          <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.GW.COMBO.EDIT')" @click="openComboEditor(it)" />
+          <Button size="sm" color="ruby" :disabled="busy" :label="t('RAGENT.RES.DELETE')" @click="remove(it)" />
+        </footer>
+      </article>
+    </section>
+    <div v-if="items.length && key !== 'providers' && key !== 'combos'" class="overflow-x-auto rounded-xl border border-n-weak">
       <table class="w-full text-start text-body-main">
         <thead>
           <tr class="border-b border-n-weak text-n-slate-11">
