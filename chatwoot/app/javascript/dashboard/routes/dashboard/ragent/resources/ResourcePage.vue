@@ -549,7 +549,14 @@ const deleteCustomProviderModel = async model => {
       <code class="mt-1 block break-all font-mono">{{ newKey }}</code>
     </p>
 
-    <p v-if="loading" class="text-n-slate-11">{{ t('RAGENT.CHAT.LOADING') }}</p>
+    <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-busy="true">
+      <div v-for="n in 8" :key="n" class="min-h-44 animate-pulse rounded-xl border border-n-weak bg-n-alpha-2 p-5">
+        <div class="size-10 rounded-xl bg-n-alpha-3" />
+        <div class="mt-5 h-4 w-3/5 rounded bg-n-alpha-3" />
+        <div class="mt-3 h-3 w-2/5 rounded bg-n-alpha-3" />
+        <div class="mt-8 h-8 w-full rounded bg-n-alpha-3" />
+      </div>
+    </div>
     <p v-else-if="forbidden" class="text-n-slate-11">{{ t('RAGENT.CHAT.FORBIDDEN') }}</p>
     <div
       v-else-if="failed"
@@ -646,7 +653,7 @@ const deleteCustomProviderModel = async model => {
       </ul>
       <p v-if="!providerAccounts.length" class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_NOT_CONNECTED') }}</p>
     </section>
-    <div v-if="key === 'providers' && providerGroups.length && !selectedProviderGroup" class="grid gap-4 md:grid-cols-2">
+    <div v-if="key === 'providers' && providerGroups.length && !selectedProviderGroup" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       <section
         v-for="g in providerGroups"
         :key="g.provider.id"
@@ -696,7 +703,7 @@ const deleteCustomProviderModel = async model => {
         </div>
       </section>
     </div>
-    <section v-if="items.length && key === 'combos'" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <section v-if="items.length && key === 'combos'" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       <article
         v-for="it in items"
         :key="it.id || JSON.stringify(it)"
