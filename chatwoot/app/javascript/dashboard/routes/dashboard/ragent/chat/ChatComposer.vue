@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 
@@ -12,6 +13,8 @@ const props = defineProps({
 const emit = defineEmits(['send', 'stop']);
 
 const { t } = useI18n();
+const route = useRoute();
+const { axios } = window;
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_FILES = 10;
@@ -155,6 +158,25 @@ const loadLocalTranscriber = async () => {
   return localTranscriberPromise;
 };
 
+// Reserva somente para aparelhos sem Web Speech/WASM funcional. O endpoint é
+// autenticado pelo BFF e encaminha à instância whisper.cpp interna da Contabo;
+// nunca a Groq, OpenAI ou GPU Vast.
+const dictateWithServerReserve = async file => {
+  const contentB64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => resolve(String(reader.result).split(',', 2)[1] || '');
+    reader.readAsDataURL(file);
+  });
+  const { data } = await axios.post(
+    `/api/v1/accounts/${route.params.accountId}/rt_ai/chats/transcribe`,
+    { content_b64: contentB64, mime: file.type }
+  );
+  const text = data?.text?.trim();
+  if (!text) throw new Error('empty-server-transcript');
+  draft.value = draft.value ? `${draft.value} ${text}` : text;
+};
+
 const dictateLocally = async file => {
   transcribing.value = true;
   try {
@@ -170,7 +192,11 @@ const dictateLocally = async file => {
     if (!text) throw new Error('empty-transcript');
     draft.value = draft.value ? `${draft.value} ${text}` : text;
   } catch (error) {
-    useAlert(t('RAGENT.CHAT.DICTATION_ERROR'));
+    try {
+      await dictateWithServerReserve(file);
+    } catch (_) {
+      useAlert(t('RAGENT.CHAT.DICTATION_ERROR'));
+    }
   } finally {
     transcribing.value = false;
   }
