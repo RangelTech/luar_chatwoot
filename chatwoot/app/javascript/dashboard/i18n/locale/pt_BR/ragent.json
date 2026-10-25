@@ -251,6 +251,7 @@
         "30D": "Últimos 30 dias",
         "90D": "Últimos 90 dias"
       },
+      "HOURLY_HELP": "Requisições concluídas por hora (UTC)",
       "PROVIDER_ORDER_HELP": "Arraste uma conta para definir a prioridade usada pelo rodízio.",
       "PRIORITY": "Prioridade {n}",
       "PROVIDER_FILTER": {
@@ -532,10 +533,12 @@
           "BY_PROVIDER": "Por provedor",
           "BY_MODEL": "Por modelo",
           "BY_COMBO": "Por combo",
+          "BY_HOUR": "Por hora",
           "BY_DAY": "Por dia",
           "COL_PROVIDER": "Provedor",
           "COL_MODEL": "Provedor / modelo",
           "COL_COMBO": "Combo",
+          "COL_HOUR": "Hora",
           "COL_DAY": "Dia",
           "NOTE": "Custo estimado em reais (cotação de referência de R$ {rate} por dólar); não é cobrança."
         }

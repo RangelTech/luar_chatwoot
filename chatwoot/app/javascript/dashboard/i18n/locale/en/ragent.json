@@ -247,6 +247,7 @@
         "30D": "Last 30 days",
         "90D": "Last 90 days"
       },
+      "HOURLY_HELP": "Completed requests by hour (UTC)",
       "PROVIDER_ORDER_HELP": "Drag an account to set the priority used by rotation.",
       "PRIORITY": "Priority {n}",
       "PROVIDERS": {
@@ -521,10 +522,12 @@
           "BY_PROVIDER": "By provider",
           "BY_MODEL": "By model",
           "BY_COMBO": "By combo",
+          "BY_HOUR": "By hour",
           "BY_DAY": "By day",
           "COL_PROVIDER": "Provider",
           "COL_MODEL": "Provider / model",
           "COL_COMBO": "Combo",
+          "COL_HOUR": "Hour",
           "COL_DAY": "Day",
           "NOTE": "Estimated cost in reais (reference rate R$ {rate} per dollar); not a bill."
         }

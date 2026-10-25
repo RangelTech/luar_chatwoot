@@ -12,6 +12,9 @@ const tokens = row =>
   Number(row?.promptTokens || 0) + Number(row?.completionTokens || 0);
 const isEmpty = computed(() => !Number(props.data.requests || 0));
 const rate = computed(() => formatNumber(USD_BRL_ESTIMATE, 2));
+const byHour = computed(() => list('byHour'));
+const maxHourlyRequests = computed(() => Math.max(1, ...byHour.value.map(row => Number(row.requests) || 0)));
+const hourLabel = value => String(value || '').replace('T', ' ').slice(5);
 
 const cards = computed(() => [
   { key: 'REQUESTS', value: formatNumber(props.data.requests) },
@@ -32,6 +35,7 @@ const tables = computed(() => [
     label: r => `${r.provider || ''} / ${r.model || ''}`,
   },
   { key: 'COMBO', rows: list('byCombo'), label: r => r.combo || '—' },
+  { key: 'HOUR', rows: byHour, label: r => hourLabel(r.hour) },
   { key: 'DAY', rows: list('byDay'), label: r => r.day },
 ]);
 </script>
@@ -57,6 +61,23 @@ const tables = computed(() => [
           <p class="mt-1 text-heading-2 text-n-slate-12">{{ c.value }}</p>
         </div>
       </div>
+      <section v-if="byHour.length" class="rounded-xl border border-n-weak p-4">
+        <div class="mb-3 flex items-baseline justify-between gap-3">
+          <h2 class="text-heading-3 text-n-slate-12">{{ t('RAGENT.RES.GW.COST.BY_HOUR') }}</h2>
+          <p class="text-sm text-n-slate-11">{{ t('RAGENT.RES.HOURLY_HELP') }}</p>
+        </div>
+        <div class="flex h-36 min-w-0 items-end gap-1 overflow-x-auto" role="img" :aria-label="t('RAGENT.RES.GW.COST.BY_HOUR')">
+          <div v-for="row in byHour" :key="row.hour" class="flex h-full min-w-7 flex-col justify-end gap-1 text-center">
+            <span class="text-xs text-n-slate-11">{{ formatNumber(row.requests) }}</span>
+            <div
+              class="min-h-1 rounded-t bg-n-brand"
+              :style="{ height: `${Math.max(4, Math.round((Number(row.requests || 0) / maxHourlyRequests) * 100))}%` }"
+              :title="`${hourLabel(row.hour)} — ${formatNumber(row.requests)} ${t('RAGENT.RES.GW.COST.REQUESTS')}`"
+            />
+            <span class="truncate text-[10px] text-n-slate-10">{{ hourLabel(row.hour) }}</span>
+          </div>
+        </div>
+      </section>
       <section v-for="tb in tables" :key="tb.key">
         <h2 class="mb-2 text-heading-3 text-n-slate-12">
           {{ t(`RAGENT.RES.GW.COST.BY_${tb.key}`) }}
