@@ -35,7 +35,7 @@ const tables = computed(() => [
     label: r => `${r.provider || ''} / ${r.model || ''}`,
   },
   { key: 'COMBO', rows: list('byCombo'), label: r => r.combo || '—' },
-  { key: 'HOUR', rows: byHour, label: r => hourLabel(r.hour) },
+  { key: 'HOUR', rows: byHour.value, label: r => hourLabel(r.hour) },
   { key: 'DAY', rows: list('byDay'), label: r => r.day },
 ]);
 </script>
