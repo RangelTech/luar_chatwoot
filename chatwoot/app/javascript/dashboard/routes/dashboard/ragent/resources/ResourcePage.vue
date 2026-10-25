@@ -907,8 +907,11 @@ const deleteCustomProviderModel = async model => {
     <UsagePanel v-else-if="raw && key === 'usage'" :data="raw" />
     <EnvironmentPanel v-else-if="raw && key === 'environment'" :data="raw" />
     <HostsPanel v-if="key === 'environment'" />
+    <!-- Painéis de uso e ambiente já apresentam o payload estruturado. Não
+         renderizar também o fallback genérico, que expunha chaves internas
+         como "ByModel 1 · PromptTokens" abaixo dos cartões. -->
     <dl
-      v-else-if="raw"
+      v-if="raw && !['usage', 'environment'].includes(key)"
       class="grid grid-cols-1 gap-x-6 gap-y-2 rounded-xl border border-n-weak p-4 text-body-main sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
     >
       <template v-for="(row, i) in rawRows" :key="i">
