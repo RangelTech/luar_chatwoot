@@ -639,6 +639,13 @@ const deleteCustomProviderModel = async model => {
         <div class="min-w-0 flex-1"><p class="text-sm text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_DETAIL') }}</p><h2 class="text-heading-2 text-n-slate-12">{{ selectedProviderGroup.provider.name }}</h2></div>
         <Button v-if="canManage" size="sm" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(selectedProviderGroup.provider)" />
       </header>
+      <p
+        v-if="selectedProviderGroup.provider.risk_notice"
+        class="rounded-lg border border-n-weak bg-n-alpha-2 px-3 py-2 text-body-main text-n-slate-11"
+        role="note"
+      >
+        {{ t('RAGENT.RES.PROVIDER_RISK_NOTICE') }}
+      </p>
       <p class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_ORDER_HELP') }}</p>
       <ul class="divide-y divide-n-weak">
         <li v-for="it in providerAccounts" :key="it.id" :draggable="canManage" class="flex flex-wrap items-center gap-2 py-3" @dragstart="canManage && (draggingProviderAccountId = it.id)" @dragover.prevent @drop="canManage && reorderProviderAccounts(it.id)">
@@ -660,7 +667,10 @@ const deleteCustomProviderModel = async model => {
         class="flex flex-col gap-2 rounded-xl border border-n-weak p-4"
       >
         <header class="flex items-center gap-2">
-          <span class="flex size-9 items-center justify-center rounded-lg bg-n-alpha-2 text-sm font-semibold text-n-slate-12">
+          <span
+            class="flex size-9 items-center justify-center rounded-lg bg-n-alpha-2 text-sm font-semibold text-n-slate-12"
+            :style="g.provider.color ? { color: g.provider.color } : undefined"
+          >
             {{ g.provider.name.slice(0, 2).toUpperCase() }}
           </span>
           <div class="min-w-0 flex-1">
@@ -673,6 +683,9 @@ const deleteCustomProviderModel = async model => {
           <Button size="sm" variant="faded" :label="t('RAGENT.RES.PROVIDER_DETAIL')" @click="openProviderDetail(g.provider)" />
           <Button v-if="canManage && g.items.length" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.TEST_BATCH')" @click="testProviderGroup(g)" />
         </header>
+        <p v-if="g.provider.risk_notice" class="rounded-lg bg-n-alpha-2 px-2 py-1 text-sm text-n-slate-11">
+          {{ t('RAGENT.RES.PROVIDER_RISK_NOTICE') }}
+        </p>
         <ul class="divide-y divide-n-weak">
           <li v-for="it in g.items" :key="it.id" class="flex flex-wrap items-center gap-2 py-2">
             <span class="min-w-0 basis-full truncate text-n-slate-12 sm:basis-auto sm:flex-1">{{ it.name || it.model }}</span>

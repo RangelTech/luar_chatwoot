@@ -239,6 +239,7 @@
       "PROVIDER_KEY_REQUIRED": "Enter the API key before testing.",
       "PROVIDER_DETAIL": "Details",
       "PROVIDER_BACK": "Back to providers",
+      "PROVIDER_RISK_NOTICE": "This provider uses a personal subscription. Connect only an authorized account and keep use within the service terms.",
       "PROVIDER_ORDER_HELP": "Drag an account to set the priority used by rotation.",
       "PRIORITY": "Priority {n}",
       "PROVIDERS": {

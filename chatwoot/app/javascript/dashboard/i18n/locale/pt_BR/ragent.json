@@ -243,6 +243,7 @@
       "PROVIDER_SEARCH": "Buscar provedor, conta ou modelo",
       "PROVIDER_DETAIL": "Detalhes",
       "PROVIDER_BACK": "Voltar aos provedores",
+      "PROVIDER_RISK_NOTICE": "Este provedor usa uma assinatura pessoal. Conecte apenas uma conta autorizada e mantenha o uso dentro dos termos do serviço.",
       "PROVIDER_ORDER_HELP": "Arraste uma conta para definir a prioridade usada pelo rodízio.",
       "PRIORITY": "Prioridade {n}",
       "PROVIDER_FILTER": {
