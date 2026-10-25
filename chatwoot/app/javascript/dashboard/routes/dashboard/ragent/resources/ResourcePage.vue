@@ -675,7 +675,7 @@ const deleteCustomProviderModel = async model => {
         </header>
         <ul class="divide-y divide-n-weak">
           <li v-for="it in g.items" :key="it.id" class="flex flex-wrap items-center gap-2 py-2">
-            <span class="min-w-0 flex-1 truncate text-n-slate-12">{{ it.name || it.model }}</span>
+            <span class="min-w-0 basis-full truncate text-n-slate-12 sm:basis-auto sm:flex-1">{{ it.name || it.model }}</span>
             <span
               class="rounded-full px-2 py-0.5 text-sm"
               :class="(it.is_active ?? it.isActive ?? true) ? 'bg-n-teal-3 text-n-teal-11' : 'bg-n-alpha-2 text-n-slate-11'"
@@ -683,22 +683,23 @@ const deleteCustomProviderModel = async model => {
               {{ t((it.is_active ?? it.isActive ?? true) ? 'RAGENT.RES.STATE_ACTIVE' : 'RAGENT.RES.STATE_OFF') }}
             </span>
             <template v-if="canManage && it.id">
-              <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.TEST')" @click="runItemAction(it, 'test')" />
-              <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.MODELS')" @click="loadProviderModels(it)" />
+              <Button class="min-h-11" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.TEST')" @click="runItemAction(it, 'test')" />
+              <Button class="min-h-11" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.MODELS')" @click="loadProviderModels(it)" />
               <Button
+                class="min-h-11"
                 size="sm"
                 variant="faded"
                 :disabled="busy"
                 :label="t((it.is_active ?? it.isActive ?? true) ? 'RAGENT.RES.ACTIONS.DEACTIVATE' : 'RAGENT.RES.ACTIONS.ACTIVATE')"
                 @click="toggleActive(it)"
               />
-              <Button size="sm" color="ruby" :label="t('RAGENT.RES.DELETE')" @click="remove(it)" />
+              <Button class="min-h-11" size="sm" color="ruby" :label="t('RAGENT.RES.DELETE')" @click="remove(it)" />
             </template>
           </li>
         </ul>
         <p v-if="!g.items.length" class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_NOT_CONNECTED') }}</p>
         <div v-if="canManage" class="flex flex-wrap gap-2">
-          <Button size="sm" variant="faded" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(g.provider)" />
+          <Button class="min-h-11" size="sm" variant="faded" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(g.provider)" />
           <a v-if="g.provider.api_key_url" class="text-sm text-n-brand" :href="g.provider.api_key_url" target="_blank" rel="noopener noreferrer">{{ t('RAGENT.RES.GET_API_KEY') }}</a>
         </div>
       </section>
