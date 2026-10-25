@@ -155,23 +155,26 @@ class Api::V1::Accounts::RtAi::ResourcesController < Api::V1::Accounts::RtAi::Ba
     gateway_failed(e)
   end
 
-  # A lista do gateway junta catálogo, alias e modelos customizados. Ao devolver
-  # também os bloqueados, a tela pode reativá-los sem precisar conhecer outra
-  # rota interna do gateway ou o id do tenant.
+  # Descobre modelos pela própria conexão tenant-scoped e junta apenas os
+  # customizados deste tenant. Alias/bloqueio continuam no console do Gateway:
+  # essas coleções antigas são globais e não podem ser abertas ao BFF.
   def provider_model_settings
-    all = Rt::GatewayClient.get(account: Current.account, path: '/api/models')['models'] || []
-    disabled = Rt::GatewayClient.get(account: Current.account, path: "/api/models/disabled?providerAlias=#{CGI.escape(@provider_alias)}")['ids'] || []
+    discovered = Rt::GatewayClient.get(account: Current.account, path: "/api/providers/#{params[:id]}/models")['models'] || []
     custom = Rt::GatewayClient.get(account: Current.account, path: '/api/models/custom')['models'] || []
-    models = all.select { |model| provider_matches?(model['provider']) }.map do |model|
-      model.merge('disabled' => disabled.include?(model['model']))
+    models = discovered.filter_map do |model|
+      model_id = model['id'].presence || model['model'].presence
+      next unless model_id
+
+      { 'model' => model_id, 'name' => model['name'].presence || model_id, 'alias' => model_id,
+        'caps' => model['caps'] || model['capabilities'] || {} }
     end
     custom.select { |model| provider_matches?(model['providerAlias']) }.each do |model|
       next if models.any? { |listed| listed['model'] == model['id'] }
 
       models << { 'model' => model['id'], 'name' => model['name'].presence || model['id'], 'alias' => model['id'],
-                  'custom' => true, 'disabled' => disabled.include?(model['id']), 'caps' => model['caps'] || {} }
+                  'custom' => true, 'caps' => model['caps'] || {} }
     end
-    render json: { provider: @provider_alias, models: models, disabled: disabled }
+    render json: { provider: @provider_alias, models: models, model_controls: false, custom_models_manageable: true }
   rescue Rt::GatewayClient::Error => e
     gateway_failed(e)
   end
