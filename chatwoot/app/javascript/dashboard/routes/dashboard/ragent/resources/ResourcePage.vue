@@ -686,7 +686,10 @@ const deleteCustomProviderModel = async model => {
         :key="g.provider.id"
         class="flex flex-col gap-2 rounded-xl border border-n-weak p-4"
       >
-        <header class="flex items-center gap-2">
+        <!-- Keep the provider identity on its own row.  With the status pill
+             and two actions in a narrow three-column card, the old single
+             flex row collapsed the name/category to zero width. -->
+        <header class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
           <span
             class="flex size-9 items-center justify-center rounded-lg bg-n-alpha-2 text-sm font-semibold text-n-slate-12"
             :style="g.provider.color ? { color: g.provider.color } : undefined"
@@ -697,11 +700,13 @@ const deleteCustomProviderModel = async model => {
             <h2 class="truncate text-heading-3 text-n-slate-12">{{ g.provider.name }}</h2>
             <p class="text-sm text-n-slate-11">{{ g.provider.category }}</p>
           </div>
-          <span class="ms-auto rounded-full bg-n-alpha-2 px-2 py-0.5 text-sm text-n-slate-11">
-            {{ t('RAGENT.RES.PROVIDER_CONNECTED', { n: g.active }, g.active) }}
-          </span>
-          <Button size="sm" variant="faded" :label="t('RAGENT.RES.PROVIDER_DETAIL')" @click="openProviderDetail(g.provider)" />
-          <Button v-if="canManage && g.items.length" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.TEST_BATCH')" @click="testProviderGroup(g)" />
+          <div class="col-span-2 flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-sm text-n-slate-11">
+              {{ t('RAGENT.RES.PROVIDER_CONNECTED', { n: g.active }, g.active) }}
+            </span>
+            <Button size="sm" variant="faded" :label="t('RAGENT.RES.PROVIDER_DETAIL')" @click="openProviderDetail(g.provider)" />
+            <Button v-if="canManage && g.items.length" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.TEST_BATCH')" @click="testProviderGroup(g)" />
+          </div>
         </header>
         <p v-if="g.provider.risk_notice" class="rounded-lg bg-n-alpha-2 px-2 py-1 text-sm text-n-slate-11">
           {{ t('RAGENT.RES.PROVIDER_RISK_NOTICE') }}
