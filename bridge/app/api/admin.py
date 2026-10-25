@@ -167,6 +167,29 @@ async def provision_tenant(payload: TenantIn):
     return {"status": "ok", "chatwoot_account_id": link["chatwoot_account_id"], "created": True}
 
 
+class TenantLinkIn(BaseModel):
+    tenant_id: UuidStr
+    tenant_name: str = Field(min_length=1, max_length=200)
+    chatwoot_account_id: int
+
+
+@router.post("/tenants/link", dependencies=[Depends(require_admin)])
+async def link_existing_tenant(payload: TenantLinkIn):
+    """Vincula um tenant a uma Account JA existente do Chatwoot (modelo unificado: o Chatwoot cria a
+    conta e o tenant antes da bridge). Idempotente. Sem isso `tenant_ai_config` nao tem a quem se
+    prender (FK em tenant_links) e a IA nunca responde nas caixas do tenant."""
+    link = tenants.upsert_tenant_link(
+        tenant_id=payload.tenant_id,
+        tenant_key=f"unificado-{payload.chatwoot_account_id}",
+        tenant_name=payload.tenant_name,
+    )
+    existing = link["chatwoot_account_id"]
+    if existing and int(existing) != payload.chatwoot_account_id:
+        raise HTTPException(status_code=409, detail="tenant ja vinculado a outra conta")
+    link = tenants.set_chatwoot_account(payload.tenant_id, payload.chatwoot_account_id)
+    return {"status": "ok", "chatwoot_account_id": link["chatwoot_account_id"]}
+
+
 @router.put("/branding", dependencies=[Depends(require_admin)])
 async def sync_branding(payload: BrandingIn):
     """Espelha somente a cópia de consumo da marca no Chatwoot.

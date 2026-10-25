@@ -44,7 +44,7 @@ class SafeFetch::Fetcher
   end
 
   def perform_request(&)
-    return SafeFetch::PrivateNetworkRequest.new(options).perform(&) if SafeFetch.allow_private_network?
+    return SafeFetch::PrivateNetworkRequest.new(options).perform(&) if SafeFetch.allow_private_network?(URI(options.url).hostname)
 
     SsrfFilter.public_send(options.method, options.url, **options.request_options, &)
   end

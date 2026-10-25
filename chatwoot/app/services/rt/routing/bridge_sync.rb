@@ -8,6 +8,7 @@ class Rt::Routing::BridgeSync
   def self.ensure_key(account:, claims:)
     ai = Rt::AiAccount.find_by(account_id: account.id)
     return :skipped if ai&.engine_tenant_id.blank? || ENV['BRIDGE_URL'].blank? || ENV['BRIDGE_ADMIN_TOKEN'].blank?
+    link_tenant(account, ai.engine_tenant_id)
     return :ok if bridge_has_key?(ai.engine_tenant_id)
 
     created = Rt::EngineClient.post('/api/integrations', { name: "luar-filas-#{SecureRandom.hex(3)}" }, claims: claims)
@@ -37,6 +38,11 @@ class Rt::Routing::BridgeSync
     :degraded
   end
 
+  # O tenant unificado nasce no Chatwoot/motor; a bridge precisa conhecer o par tenant <-> Account (idempotente).
+  def self.link_tenant(account, tenant_id)
+    bridge_post('/admin/tenants/link', { tenant_id: tenant_id, tenant_name: account.name, chatwoot_account_id: account.id })
+  end
+
   def self.bridge_has_key?(tenant_id)
     res = HTTParty.get("#{ENV.fetch('BRIDGE_URL')}/admin/ai-config/status", query: { tenant_id: tenant_id },
                                                                           headers: headers, timeout: 15)
@@ -51,5 +57,5 @@ class Rt::Routing::BridgeSync
   def self.headers
     { 'Authorization' => "Bearer #{ENV.fetch('BRIDGE_ADMIN_TOKEN')}" }
   end
-  private_class_method :bridge_has_key?, :bridge_post, :headers
+  private_class_method :bridge_has_key?, :bridge_post, :headers, :link_tenant
 end

@@ -33,7 +33,18 @@ module SafeFetch
     raise UnsafeUrlError, e.message
   end
 
-  def self.allow_private_network?
-    ActiveModel::Type::Boolean.new.cast(ENV.fetch('SAFE_FETCH_ALLOW_PRIVATE_NETWORK', false))
+  # LUAR: o 4.17 bloqueia qualquer webhook para IP privado, mas o Agent Bot fala com o bridge na rede interna.
+  # Em vez de liberar a rede toda (SAFE_FETCH_ALLOW_PRIVATE_NETWORK), libera so os hosts da lista
+  # SAFE_FETCH_PRIVATE_HOST_ALLOWLIST (ex.: chatwoot-bridge), comparados pelo nome exato do host.
+  def self.allow_private_network?(host = nil)
+    return true if ActiveModel::Type::Boolean.new.cast(ENV.fetch('SAFE_FETCH_ALLOW_PRIVATE_NETWORK', false))
+
+    allowlisted_private_host?(host)
+  end
+
+  def self.allowlisted_private_host?(host)
+    return false if host.blank?
+
+    ENV.fetch('SAFE_FETCH_PRIVATE_HOST_ALLOWLIST', '').split(',').map { |h| h.strip.downcase }.compact_blank.include?(host.to_s.downcase)
   end
 end
