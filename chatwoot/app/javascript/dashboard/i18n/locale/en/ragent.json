@@ -240,6 +240,13 @@
       "PROVIDER_DETAIL": "Details",
       "PROVIDER_BACK": "Back to providers",
       "PROVIDER_RISK_NOTICE": "This provider uses a personal subscription. Connect only an authorized account and keep use within the service terms.",
+      "USAGE_PERIOD": "Usage period",
+      "USAGE_PERIODS": {
+        "24H": "Last 24 hours",
+        "7D": "Last 7 days",
+        "30D": "Last 30 days",
+        "90D": "Last 90 days"
+      },
       "PROVIDER_ORDER_HELP": "Drag an account to set the priority used by rotation.",
       "PRIORITY": "Priority {n}",
       "PROVIDERS": {

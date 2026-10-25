@@ -9,6 +9,7 @@ class Api::V1::Accounts::RtAi::ResourcesController < Api::V1::Accounts::RtAi::Ba
   PROVIDER_ID = /\A[a-z0-9][a-z0-9_-]{0,80}\z/
   MODEL_ID = /\A[a-zA-Z0-9._:-]{1,160}\z/
   MODEL_ALIAS = /\A[a-zA-Z0-9._ -]{1,80}\z/
+  USAGE_PERIODS = { '24h' => 24.hours, '7d' => 7.days, '30d' => 30.days, '90d' => 90.days }.freeze
 
   RESOURCES = {
     'providers' => { gateway: :providers, view: 'ai.providers.view', manage: 'ai.providers.manage',
@@ -292,6 +293,7 @@ class Api::V1::Accounts::RtAi::ResourcesController < Api::V1::Accounts::RtAi::Ba
     when :summary, :usage, :requests
       tenant_id = Rt::AiAccount.find_by!(account_id: Current.account.id).engine_tenant_id
       suffix = { summary: 'summary', usage: 'usage', requests: 'requests?limit=50' }.fetch(@rt_resource[:gateway])
+      suffix = "#{suffix}?since=#{CGI.escape(usage_since.iso8601)}" if @rt_resource[:gateway] == :usage && usage_since
       Rt::GatewayClient.get(account: Current.account, path: "/api/tenants/#{tenant_id}/#{suffix}")
     end
   rescue Rt::GatewayClient::Error => e
@@ -353,6 +355,16 @@ class Api::V1::Accounts::RtAi::ResourcesController < Api::V1::Accounts::RtAi::Ba
     Rt::GatewayClient.delete(account: Current.account, path: "/api/#{@rt_resource[:gateway]}/#{params[:id]}")
   rescue Rt::GatewayClient::Error => e
     gateway_failed(e)
+  end
+
+  # A UI escolhe somente uma janela fixa. O BFF converte-a em data e mantém a
+  # rota do Gateway fechada: não há expressão, URL nem intervalo arbitrário
+  # vindo do navegador.
+  def usage_since
+    return nil unless params[:period].present?
+
+    duration = USAGE_PERIODS[params[:period].to_s]
+    duration ? Time.current - duration : nil
   end
 
   def gateway_member_action

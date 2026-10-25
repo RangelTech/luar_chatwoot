@@ -57,6 +57,7 @@ const PER_PAGE = 25;
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PER_PAGE)));
 const providerSearch = ref('');
 const providerFilter = ref('all');
+const usagePeriod = ref('30d');
 const providerValidation = ref(null);
 const selectedProviderId = ref(null);
 const draggingProviderAccountId = ref(null);
@@ -173,7 +174,12 @@ const load = async () => {
   try {
     const { data } = await axios.get(
       base.value,
-      config.value.paged ? { params: { page: page.value, per_page: PER_PAGE } } : {}
+      {
+        params: {
+          ...(config.value.paged ? { page: page.value, per_page: PER_PAGE } : {}),
+          ...(key.value === 'usage' ? { period: usagePeriod.value } : {}),
+        },
+      }
     );
     total.value = Number(data?.total) || 0;
     const list = Array.isArray(data)
@@ -228,6 +234,9 @@ watch(key, () => {
   form.value = {};
   load();
   loadProviderCatalog();
+});
+watch(usagePeriod, () => {
+  if (key.value === 'usage') load();
 });
 
 const canManage = computed(() => !!config.value.manage);
@@ -514,6 +523,17 @@ const deleteCustomProviderModel = async model => {
         {{ t(`RAGENT.RES.${config.title}.TITLE`) }}
       </h1>
       <div class="ms-auto flex gap-2">
+        <select
+          v-if="key === 'usage'"
+          v-model="usagePeriod"
+          class="!mb-0"
+          :aria-label="t('RAGENT.RES.USAGE_PERIOD')"
+        >
+          <option value="24h">{{ t('RAGENT.RES.USAGE_PERIODS.24H') }}</option>
+          <option value="7d">{{ t('RAGENT.RES.USAGE_PERIODS.7D') }}</option>
+          <option value="30d">{{ t('RAGENT.RES.USAGE_PERIODS.30D') }}</option>
+          <option value="90d">{{ t('RAGENT.RES.USAGE_PERIODS.90D') }}</option>
+        </select>
         <Button
           v-for="a in config.actions || []"
           :key="a"
