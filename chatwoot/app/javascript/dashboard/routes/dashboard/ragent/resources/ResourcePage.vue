@@ -230,6 +230,14 @@ watch(key, () => {
   showOauth.value = false;
   editingCombo.value = null;
   providerModels.value = [];
+  // ResourcePage is reused by Vue Router across IA resources. Clear the full
+  // provider-model session so a just-opened provider panel cannot leak into
+  // Combos, Integrations, or another route after navigation.
+  providerModelConnectionId.value = null;
+  providerModelsManageable.value = false;
+  providerCustomModelsManageable.value = false;
+  customModelId.value = '';
+  customModelName.value = '';
   providerQuota.value = null;
   newKey.value = '';
   form.value = {};
