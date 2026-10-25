@@ -799,7 +799,7 @@ const menuItems = computed(() => {
             'ragent_requests',
           ],
           children: [
-            { name: 'Settings AI Agents', label: t('RAGENT.MENU.AGENTS'), to: accountScopedRoute('ragent_agents') },
+            { name: 'Settings AI Agents', label: t('RAGENT.MENU.AI_AGENTS'), to: accountScopedRoute('ragent_agents') },
             { name: 'Settings AI Skills', label: t('RAGENT.MENU.SKILLS'), to: accountScopedRoute('ragent_skills') },
             { name: 'Settings AI Routines', label: t('RAGENT.MENU.ROUTINES'), to: accountScopedRoute('ragent_routines') },
             { name: 'Settings AI Providers', label: t('RAGENT.MENU.PROVIDERS'), to: accountScopedRoute('ragent_providers') },
