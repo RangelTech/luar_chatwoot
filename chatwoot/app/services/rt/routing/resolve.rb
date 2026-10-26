@@ -51,6 +51,7 @@ class Rt::Routing::Resolve
 
   def apply_entry_queue(decision, entry)
     @conversation.update!(team_id: entry.team_id)
+    Rt::Routing::InboxAccess.grant(team_id: entry.team_id, inbox: @conversation.inbox)
     decision[:apply_entry_queue] = false
     true
   end

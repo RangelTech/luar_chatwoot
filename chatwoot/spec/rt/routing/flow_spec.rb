@@ -123,6 +123,14 @@ RSpec.describe 'Fase F: fluxo de roteamento', type: :request do
       expect(Rt::RoutingEvent.where(reason: 'repasse_da_ia', run_id: 'r1').count).to eq(1)
     end
 
+    it 'membros da fila humana passam a ser membros da caixa no repasse' do
+      outro = create(:user, account: account, role: :agent)
+      create(:team_member, team: humans, user: outro)
+      expect(inbox.inbox_members.exists?(user_id: outro.id)).to be(false)
+      Rt::Routing::Handoff.call(conversation: conversation, destination: 'humanos', summary: 'x')
+      expect(inbox.inbox_members.exists?(user_id: outro.id)).to be(true)
+    end
+
     it 'sem destino explicito usa a fila de repasse padrao' do
       expect(Rt::Routing::Handoff.call(conversation: conversation).team_id).to eq(humans.id)
     end

@@ -27,6 +27,7 @@ class Rt::Routing::Handoff
 
     add_note if @summary.present?
     @conversation.update!(team_id: target.id)
+    Rt::Routing::InboxAccess.grant(team_id: target.id, inbox: @conversation.inbox)
     Rt::RoutingEvent.record!(conversation: @conversation, from_team_id: origin, to_team_id: target.id, actor_kind: 'ia',
                              reason: 'repasse_da_ia', run_id: @run_id)
     Result.new(ok: true, reason: 'repassado', team_id: target.id)
