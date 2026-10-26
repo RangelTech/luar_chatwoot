@@ -40,7 +40,11 @@ class Rt::Routing::BridgeSync
 
   # O tenant unificado nasce no Chatwoot/motor; a bridge precisa conhecer o par tenant <-> Account (idempotente).
   def self.link_tenant(account, tenant_id)
-    bridge_post('/admin/tenants/link', { tenant_id: tenant_id, tenant_name: account.name, chatwoot_account_id: account.id })
+    admin = account.account_users.administrator.includes(:user).first&.user
+    # a Platform API so emite token para usuario ligado ao PlatformApp; sem isso a bridge nao consegue responder
+    PlatformApp.find_each { |app| PlatformAppPermissible.find_or_create_by!(platform_app: app, permissible: admin) } if admin
+    bridge_post('/admin/tenants/link', { tenant_id: tenant_id, tenant_name: account.name, chatwoot_account_id: account.id,
+                                         admin_chatwoot_user_id: admin&.id, admin_email: admin&.email })
   end
 
   def self.bridge_has_key?(tenant_id)

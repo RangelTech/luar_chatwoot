@@ -171,6 +171,9 @@ class TenantLinkIn(BaseModel):
     tenant_id: UuidStr
     tenant_name: str = Field(min_length=1, max_length=200)
     chatwoot_account_id: int
+    # administrador da conta: a bridge responde as conversas com o token dele (Platform API)
+    admin_chatwoot_user_id: int | None = None
+    admin_email: str | None = None
 
 
 @router.post("/tenants/link", dependencies=[Depends(require_admin)])
@@ -187,6 +190,21 @@ async def link_existing_tenant(payload: TenantLinkIn):
     if existing and int(existing) != payload.chatwoot_account_id:
         raise HTTPException(status_code=409, detail="tenant ja vinculado a outra conta")
     link = tenants.set_chatwoot_account(payload.tenant_id, payload.chatwoot_account_id)
+    if payload.admin_chatwoot_user_id and payload.admin_email:
+        from app.db import get_connection
+
+        with get_connection() as conn:
+            known = conn.execute(
+                "SELECT 1 FROM user_links WHERE tenant_id = %s AND chatwoot_user_id = %s",
+                (payload.tenant_id, payload.admin_chatwoot_user_id),
+            ).fetchone()
+            if not known:
+                conn.execute(
+                    """INSERT INTO user_links (tenant_id, platform_user_id, email, chatwoot_user_id, role)
+                       VALUES (%s, %s, %s, %s, 'administrator')
+                       ON CONFLICT (tenant_id, platform_user_id) DO UPDATE SET chatwoot_user_id = EXCLUDED.chatwoot_user_id""",
+                    (payload.tenant_id, str(uuid.uuid5(uuid.NAMESPACE_DNS, payload.admin_email.lower())), payload.admin_email, payload.admin_chatwoot_user_id),
+                )
     return {"status": "ok", "chatwoot_account_id": link["chatwoot_account_id"]}
 
 
