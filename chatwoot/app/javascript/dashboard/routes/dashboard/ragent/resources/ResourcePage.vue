@@ -88,6 +88,30 @@ const providerGroups = computed(() => {
   });
 });
 
+// Logos oficiais do 9Router (public/luar/providers/<id>.png); sem imagem, mostra as iniciais.
+const logoFailed = ref({});
+const providerLogo = id => `/luar/providers/${id}.png`;
+const SECTION_ORDER = ['custom', 'oauth', 'freeTier', 'free', 'apikey', 'webCookie'];
+const providerSections = computed(() => {
+  const by = {};
+  providerGroups.value.forEach(g => {
+    const cat = SECTION_ORDER.includes(g.provider.category) ? g.provider.category : 'apikey';
+    (by[cat] = by[cat] || []).push(g);
+  });
+  return SECTION_ORDER.filter(c => by[c]?.length).map(c => ({ category: c, groups: by[c] }));
+});
+const oauthProvider = ref('');
+const OAUTH_IDS = ['codex', 'claude', 'gemini-cli', 'github'];
+const startOauth = id => {
+  creating.value = false;
+  oauthProvider.value = id;
+  showOauth.value = true;
+};
+const closeCreate = () => {
+  creating.value = false;
+  showOauth.value = false;
+};
+
 const startProviderConnection = provider => {
   form.value = {
     provider: provider.id,
@@ -555,18 +579,12 @@ const deleteCustomProviderModel = async model => {
           @click="runAction(a)"
         />
         <Button
-          v-if="canManage && key === 'providers'"
-          variant="faded"
-          :label="t('RAGENT.RES.GW.OAUTH.BUTTON')"
-          @click="showOauth = !showOauth"
-        />
-        <Button
           v-if="canManage && key === 'combos'"
           :label="t('RAGENT.RES.NEW')"
           @click="openComboEditor(null)"
         />
         <Button
-          v-else-if="canManage && config.fields.length"
+          v-else-if="canManage && config.fields.length && key !== 'providers'"
           :label="t('RAGENT.RES.NEW')"
           @click="creating = !creating"
         />
@@ -602,11 +620,21 @@ const deleteCustomProviderModel = async model => {
       <Button size="sm" variant="faded" :label="t('RAGENT.RES.RETRY')" @click="load" />
     </div>
 
-    <ProviderOauth
+    <div
       v-if="showOauth && key === 'providers'"
-      :base="`/api/v1/accounts/${accountId}/rt_ai`"
-      @done="load"
-    />
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      @keydown.esc="showOauth = false"
+      @click.self="showOauth = false"
+    >
+      <div class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl border border-n-weak bg-n-solid-1 p-6 shadow-2xl">
+        <div class="mb-3 flex justify-end">
+          <Button size="sm" variant="faded" color="slate" icon="i-lucide-x" :aria-label="t('RAGENT.RES.GW.CANCEL')" @click="showOauth = false" />
+        </div>
+        <ProviderOauth :base="`/api/v1/accounts/${accountId}/rt_ai`" :initial="oauthProvider" @done="() => { showOauth = false; load(); }" />
+      </div>
+    </div>
     <ComboEditor
       v-if="editingCombo && key === 'combos'"
       :key="editingCombo.id || 'new'"
@@ -616,7 +644,34 @@ const deleteCustomProviderModel = async model => {
       @save="saveCombo"
       @cancel="editingCombo = null"
     />
-    <section v-if="creating && key !== 'combos'" class="flex flex-col gap-2 rounded-xl border border-n-weak p-4">
+    <div
+      v-if="creating && key !== 'combos'"
+      :class="key === 'providers' ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4' : ''"
+      :role="key === 'providers' ? 'dialog' : undefined"
+      :aria-modal="key === 'providers' ? 'true' : undefined"
+      @keydown.esc="closeCreate"
+      @click.self="key === 'providers' && closeCreate()"
+    >
+    <section
+      class="flex flex-col gap-3 rounded-xl border border-n-weak p-4"
+      :class="key === 'providers' ? 'max-h-[90vh] w-full max-w-lg overflow-y-auto bg-n-solid-1 p-6 shadow-2xl' : ''"
+    >
+      <header v-if="key === 'providers'" class="flex items-center gap-3">
+        <span class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-n-weak">
+          <img v-if="form.provider && !logoFailed[form.provider]" :src="providerLogo(form.provider)" alt="" class="size-full object-contain" @error="logoFailed[form.provider] = true" />
+          <span v-else class="text-sm font-semibold text-n-slate-12">{{ String(form.provider || '?').slice(0, 2).toUpperCase() }}</span>
+        </span>
+        <div class="min-w-0 flex-1">
+          <h2 class="truncate text-heading-2 text-n-slate-12">{{ t('RAGENT.RES.ADD_ACCOUNT') }}</h2>
+          <p class="truncate text-sm text-n-slate-11">{{ form.name }}</p>
+        </div>
+        <Button size="sm" variant="faded" color="slate" icon="i-lucide-x" :aria-label="t('RAGENT.RES.GW.CANCEL')" @click="closeCreate" />
+      </header>
+      <div v-if="key === 'providers' && OAUTH_IDS.includes(form.provider)" class="flex flex-col gap-2 rounded-xl border border-n-weak bg-n-alpha-1 p-3">
+        <p class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.GW.OAUTH.HELP') }}</p>
+        <Button :label="t('RAGENT.RES.GW.OAUTH.BUTTON')" @click="startOauth(form.provider)" />
+        <p class="text-center text-sm text-n-slate-10">{{ t('RAGENT.RES.OR_API_KEY') }}</p>
+      </div>
       <label v-for="f in config.fields" :key="f.key" class="text-body-main text-n-slate-11">
         {{ t(`RAGENT.RES.FIELDS.${f.label}`) }}
         <!-- A lista não pode ser a allowlist antiga e curta: ao abrir um cartão
@@ -648,8 +703,12 @@ const deleteCustomProviderModel = async model => {
         :disabled="busy"
         @click="validateProviderKey()"
       />
-      <Button :label="t('RAGENT.RES.SAVE')" :disabled="busy" @click="submit" />
+      <div class="flex flex-wrap justify-end gap-2">
+        <Button v-if="key === 'providers'" variant="faded" color="slate" :label="t('RAGENT.RES.GW.CANCEL')" @click="closeCreate" />
+        <Button :label="t('RAGENT.RES.SAVE')" :disabled="busy" @click="submit" />
+      </div>
     </section>
+    </div>
 
     <!-- Spec 11 §8: provedores em cartões por provedor, com as contas conectadas dentro -->
     <div v-if="key === 'providers' && (items.length || providerCatalog.length)" class="flex flex-wrap gap-2">
@@ -668,7 +727,7 @@ const deleteCustomProviderModel = async model => {
     <section v-if="key === 'providers' && selectedProviderGroup" class="flex flex-col gap-4 rounded-xl border border-n-weak p-4">
       <header class="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="faded" :label="t('RAGENT.RES.PROVIDER_BACK')" @click="closeProviderDetail" />
-        <div class="min-w-0 flex-1"><p class="text-sm text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_DETAIL') }}</p><h2 class="text-heading-2 text-n-slate-12">{{ selectedProviderGroup.provider.name }}</h2></div>
+        <div class="min-w-0 flex-1"><p class="text-sm text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_DETAIL') }}</p><h2 class="flex items-center gap-3 text-heading-2 text-n-slate-12"><span class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 ring-1 ring-n-weak"><img v-if="!logoFailed[selectedProviderGroup.provider.id]" :src="providerLogo(selectedProviderGroup.provider.id)" alt="" class="size-full object-contain" @error="logoFailed[selectedProviderGroup.provider.id] = true" /></span>{{ selectedProviderGroup.provider.name }}</h2></div>
         <Button v-if="canManage" size="sm" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(selectedProviderGroup.provider)" />
       </header>
       <p
@@ -692,65 +751,36 @@ const deleteCustomProviderModel = async model => {
       </ul>
       <p v-if="!providerAccounts.length" class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_NOT_CONNECTED') }}</p>
     </section>
-    <div v-if="key === 'providers' && providerGroups.length && !selectedProviderGroup" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-      <section
-        v-for="g in providerGroups"
-        :key="g.provider.id"
-        class="flex flex-col gap-2 rounded-xl border border-n-weak p-4"
-      >
-        <!-- Keep the provider identity on its own row.  With the status pill
-             and two actions in a narrow three-column card, the old single
-             flex row collapsed the name/category to zero width. -->
-        <header class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
-          <span
-            class="flex size-9 items-center justify-center rounded-lg bg-n-alpha-2 text-sm font-semibold text-n-slate-12"
-            :style="g.provider.color ? { color: g.provider.color } : undefined"
+    <div v-if="key === 'providers' && providerGroups.length && !selectedProviderGroup" class="flex flex-col gap-8">
+      <section v-for="sec in providerSections" :key="sec.category" class="flex flex-col gap-3">
+        <h2 class="flex items-center gap-2 text-heading-2 text-n-slate-12">
+          {{ t(`RAGENT.RES.PROVIDER_SECTION.${sec.category.toUpperCase()}`) }}
+          <span class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-sm font-normal text-n-slate-11">{{ sec.groups.length }}</span>
+        </h2>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <button
+            v-for="g in sec.groups"
+            :key="g.provider.id"
+            type="button"
+            class="group flex min-h-20 items-center gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-3 text-start shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            :class="g.items.length ? 'border-n-teal-6' : ''"
+            :data-testid="`provider-card-${g.provider.id}`"
+            @click="openProviderDetail(g.provider)"
           >
-            {{ g.provider.name.slice(0, 2).toUpperCase() }}
-          </span>
-          <div class="min-w-0 flex-1">
-            <h2 class="truncate text-heading-3 text-n-slate-12">{{ g.provider.name }}</h2>
-            <p class="text-sm text-n-slate-11">{{ g.provider.category }}</p>
-          </div>
-          <div class="col-span-2 flex flex-wrap items-center gap-2">
-            <span class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-sm text-n-slate-11">
-              {{ t('RAGENT.RES.PROVIDER_CONNECTED', { n: g.active }, g.active) }}
+            <span class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-n-weak">
+              <img v-if="!logoFailed[g.provider.id]" :src="providerLogo(g.provider.id)" :alt="g.provider.name" loading="lazy" class="size-full object-contain" @error="logoFailed[g.provider.id] = true" />
+              <span v-else class="text-sm font-semibold" :style="g.provider.color ? { color: g.provider.color } : undefined">{{ g.provider.name.slice(0, 2).toUpperCase() }}</span>
             </span>
-            <Button size="sm" variant="faded" :label="t('RAGENT.RES.PROVIDER_DETAIL')" @click="openProviderDetail(g.provider)" />
-            <Button v-if="canManage && g.items.length" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.TEST_BATCH')" @click="testProviderGroup(g)" />
-          </div>
-        </header>
-        <p v-if="g.provider.risk_notice" class="rounded-lg bg-n-alpha-2 px-2 py-1 text-sm text-n-slate-11">
-          {{ t('RAGENT.RES.PROVIDER_RISK_NOTICE') }}
-        </p>
-        <ul class="divide-y divide-n-weak">
-          <li v-for="it in g.items" :key="it.id" class="flex flex-wrap items-center gap-2 py-2">
-            <span class="min-w-0 basis-full truncate text-n-slate-12 sm:basis-auto sm:flex-1">{{ it.name || it.model }}</span>
-            <span
-              class="rounded-full px-2 py-0.5 text-sm"
-              :class="(it.is_active ?? it.isActive ?? true) ? 'bg-n-teal-3 text-n-teal-11' : 'bg-n-alpha-2 text-n-slate-11'"
-            >
-              {{ t((it.is_active ?? it.isActive ?? true) ? 'RAGENT.RES.STATE_ACTIVE' : 'RAGENT.RES.STATE_OFF') }}
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-heading-3 text-n-slate-12">{{ g.provider.name }}</span>
+              <span v-if="g.items.length" class="mt-1 inline-flex items-center gap-1.5 rounded-full bg-n-teal-3 px-2 py-0.5 text-xs font-medium text-n-teal-11">
+                <span class="size-1.5 rounded-full bg-n-teal-9" aria-hidden="true" />
+                {{ t('RAGENT.RES.PROVIDER_CONNECTED', { n: g.active }, g.active) }}
+              </span>
+              <span v-else class="mt-1 block truncate text-sm text-n-slate-10">{{ t('RAGENT.RES.PROVIDER_NOT_CONNECTED') }}</span>
             </span>
-            <template v-if="canManage && it.id">
-              <Button class="min-h-11" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.TEST')" @click="runItemAction(it, 'test')" />
-              <Button class="min-h-11" size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.MODELS')" @click="loadProviderModels(it)" />
-              <Button
-                class="min-h-11"
-                size="sm"
-                variant="faded"
-                :disabled="busy"
-                :label="t((it.is_active ?? it.isActive ?? true) ? 'RAGENT.RES.ACTIONS.DEACTIVATE' : 'RAGENT.RES.ACTIONS.ACTIVATE')"
-                @click="toggleActive(it)"
-              />
-              <Button class="min-h-11" size="sm" color="ruby" :label="t('RAGENT.RES.DELETE')" @click="remove(it)" />
-            </template>
-          </li>
-        </ul>
-        <p v-if="!g.items.length" class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_NOT_CONNECTED') }}</p>
-        <div v-if="canManage" class="flex flex-wrap gap-2">
-          <Button class="min-h-11" size="sm" variant="faded" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(g.provider)" />
-          <a v-if="g.provider.api_key_url" class="text-sm text-n-brand" :href="g.provider.api_key_url" target="_blank" rel="noopener noreferrer">{{ t('RAGENT.RES.GET_API_KEY') }}</a>
+            <span class="i-lucide-chevron-right size-4 shrink-0 text-n-slate-10 transition group-hover:translate-x-0.5" aria-hidden="true" />
+          </button>
         </div>
       </section>
     </div>

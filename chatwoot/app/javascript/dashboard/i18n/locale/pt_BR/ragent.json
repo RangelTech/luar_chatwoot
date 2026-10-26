@@ -555,7 +555,16 @@
       "PROVIDER_NOT_CONNECTED": "Nenhuma conta conectada ainda.",
       "ADD_ACCOUNT": "Adicionar conta",
       "GET_API_KEY": "Obter chave",
-      "CATALOG_UNAVAILABLE": "O catálogo de provedores não está disponível agora. Tente novamente."
+      "CATALOG_UNAVAILABLE": "O catálogo de provedores não está disponível agora. Tente novamente.",
+      "PROVIDER_SECTION": {
+        "CUSTOM": "Provedores compatíveis (OpenAI e Anthropic)",
+        "OAUTH": "Entrar com login (assinatura)",
+        "FREETIER": "Camada gratuita",
+        "FREE": "Gratuitos",
+        "APIKEY": "Chave de API",
+        "WEBCOOKIE": "Sessão do navegador"
+      },
+      "OR_API_KEY": "ou use uma chave de API"
     },
     "CRED": {
       "TITLE": "Credenciais",
