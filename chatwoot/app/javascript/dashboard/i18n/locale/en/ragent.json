@@ -549,7 +549,14 @@
         "APIKEY": "API key",
         "WEBCOOKIE": "Browser session"
       },
-      "OR_API_KEY": "or use an API key"
+      "OR_API_KEY": "or use an API key",
+      "PROVIDER_CONNECTIONS": "Connections",
+      "TEST_ONE_BY_ONE": "Test one by one",
+      "MOVE_UP": "Move up",
+      "MOVE_DOWN": "Move down",
+      "TESTING": "Testing…",
+      "KEEP_KEY": "Leave blank to keep the current key",
+      "EDIT": "Edit"
     },
     "CRED": {
       "TITLE": "Credentials",

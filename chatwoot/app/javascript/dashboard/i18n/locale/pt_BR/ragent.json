@@ -564,7 +564,14 @@
         "APIKEY": "Chave de API",
         "WEBCOOKIE": "Sessão do navegador"
       },
-      "OR_API_KEY": "ou use uma chave de API"
+      "OR_API_KEY": "ou use uma chave de API",
+      "PROVIDER_CONNECTIONS": "Conexões",
+      "TEST_ONE_BY_ONE": "Testar uma a uma",
+      "MOVE_UP": "Subir na ordem",
+      "MOVE_DOWN": "Descer na ordem",
+      "TESTING": "Testando…",
+      "KEEP_KEY": "Deixe em branco para manter a chave atual",
+      "EDIT": "Editar"
     },
     "CRED": {
       "TITLE": "Credenciais",
