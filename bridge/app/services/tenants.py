@@ -28,6 +28,31 @@ def upsert_tenant_link(*, tenant_id: str, tenant_key: str, tenant_name: str) -> 
         ).fetchone()
 
 
+def link_admin_user(tenant_id: str, email: str, chatwoot_user_id: int) -> None:
+    """Registra o administrador da conta (idempotente): a bridge responde com o token dele."""
+    import uuid
+
+    with get_connection() as conn:
+        known = conn.execute(
+            "SELECT 1 FROM user_links WHERE tenant_id = %s AND chatwoot_user_id = %s",
+            (tenant_id, chatwoot_user_id),
+        ).fetchone()
+        if known:
+            return
+        conn.execute(
+            """INSERT INTO user_links (tenant_id, platform_user_id, email, chatwoot_user_id, role)
+               VALUES (%s, %s, %s, %s, 'administrator')
+               ON CONFLICT (tenant_id, platform_user_id)
+               DO UPDATE SET chatwoot_user_id = EXCLUDED.chatwoot_user_id""",
+            (
+                tenant_id,
+                str(uuid.uuid5(uuid.NAMESPACE_DNS, email.lower())),
+                email,
+                chatwoot_user_id,
+            ),
+        )
+
+
 def set_chatwoot_account(tenant_id: str, account_id: int) -> dict:
     with get_connection() as conn:
         return conn.execute(
