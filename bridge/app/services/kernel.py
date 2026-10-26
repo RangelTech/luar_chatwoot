@@ -8,6 +8,7 @@ mestre, e a ponte só transporta contexto.
 
 import asyncio
 import logging
+import os
 import re
 
 import httpx
@@ -16,7 +17,8 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-TIMEOUT = 300.0
+# tarefas pesadas no ambiente do tenant (planilha, grafico, Metabase) levam minutos; o kernel ja limita a execucao
+TIMEOUT = float(os.getenv("KERNEL_TIMEOUT_S", "1500"))
 
 # Convenção de handoff: o agente termina a resposta com este marcador quando
 # entende que um humano precisa assumir. Fica no protocolo, não no prompt de
