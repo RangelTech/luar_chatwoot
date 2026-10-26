@@ -329,7 +329,8 @@
         "MODEL": "Model",
         "MODELS": "Models (JSON list)",
         "API_KEY": "API key",
-        "API_BASE": "API base URL (optional)"
+        "API_BASE": "API base URL (optional)",
+        "BASE_URL": "Base URL"
       },
       "COLUMNS": {
         "NAME": "Name",
@@ -556,7 +557,11 @@
       "MOVE_DOWN": "Move down",
       "TESTING": "Testing…",
       "KEEP_KEY": "Leave blank to keep the current key",
-      "EDIT": "Edit"
+      "EDIT": "Edit",
+      "ADD_KEY_TITLE": "Add {name} API Key",
+      "CHECK": "Check",
+      "PRIORITY_LABEL": "Priority",
+      "PROVIDER_NAME_PLACEHOLDER": "Production Key"
     },
     "CRED": {
       "TITLE": "Credentials",

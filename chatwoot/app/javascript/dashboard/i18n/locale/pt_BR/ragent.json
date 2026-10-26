@@ -340,7 +340,8 @@
         "MODEL": "Modelo",
         "MODELS": "Modelos (lista JSON)",
         "API_KEY": "Chave de API",
-        "API_BASE": "URL base da API (opcional)"
+        "API_BASE": "URL base da API (opcional)",
+        "BASE_URL": "URL base"
       },
       "COLUMNS": {
         "NAME": "Nome",
@@ -571,7 +572,11 @@
       "MOVE_DOWN": "Descer na ordem",
       "TESTING": "Testando…",
       "KEEP_KEY": "Deixe em branco para manter a chave atual",
-      "EDIT": "Editar"
+      "EDIT": "Editar",
+      "ADD_KEY_TITLE": "Adicionar chave de {name}",
+      "CHECK": "Verificar",
+      "PRIORITY_LABEL": "Prioridade",
+      "PROVIDER_NAME_PLACEHOLDER": "Chave de produção"
     },
     "CRED": {
       "TITLE": "Credenciais",
