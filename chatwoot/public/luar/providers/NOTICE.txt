@@ -1,0 +1,1 @@
+Icones de provedores copiados do 9Router (https://github.com/decolua/9router), licenca MIT, Copyright (c) 2024-2026 decolua and contributors.

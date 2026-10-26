@@ -5,7 +5,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 
 // Cadastro de provedor por OAuth (G-3). O servidor guarda PKCE/estado; aqui só se abre a URL,
 // se cola a URL de retorno (authorization code) ou se mostra o código do dispositivo.
-const props = defineProps({ base: { type: String, required: true } });
+const props = defineProps({ base: { type: String, required: true }, initial: { type: String, default: '' } });
 const emit = defineEmits(['done']);
 const { axios } = window;
 const { t } = useI18n();
@@ -32,7 +32,7 @@ const copyLink = async () => {
 const openPopup = () => {
   window.open(flow.value.auth_url, 'luar-oauth', 'width=520,height=720,noopener');
 };
-const provider = ref('codex');
+const provider = ref(PROVIDERS.includes(props.initial) ? props.initial : 'codex');
 const flow = ref(null);
 const callback = ref('');
 const busy = ref(false);
@@ -119,7 +119,7 @@ const poll = async () => {
     </p>
     <div class="flex flex-wrap gap-2">
       <button
-        v-for="p in PROVIDERS"
+        v-for="p in (props.initial ? [] : PROVIDERS)"
         :key="p"
         type="button"
         class="rounded-xl border px-3 py-2 text-start text-body-main"

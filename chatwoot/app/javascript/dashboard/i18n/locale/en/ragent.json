@@ -540,7 +540,16 @@
       },
       "PROVIDER_CONNECTED": "{n} connected | {n} connected | {n} connected",
       "STATE_ACTIVE": "Active",
-      "STATE_OFF": "Off"
+      "STATE_OFF": "Off",
+      "PROVIDER_SECTION": {
+        "CUSTOM": "Compatible providers (OpenAI and Anthropic)",
+        "OAUTH": "Sign in with login (subscription)",
+        "FREETIER": "Free tier",
+        "FREE": "Free",
+        "APIKEY": "API key",
+        "WEBCOOKIE": "Browser session"
+      },
+      "OR_API_KEY": "or use an API key"
     },
     "CRED": {
       "TITLE": "Credentials",
