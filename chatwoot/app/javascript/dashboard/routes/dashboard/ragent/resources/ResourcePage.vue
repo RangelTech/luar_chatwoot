@@ -771,13 +771,6 @@ const deleteCustomProviderModel = async model => {
       <p v-if="key === 'providers' && providerValidation !== null" class="text-body-main" :class="providerValidation ? 'text-n-teal-11' : 'text-n-ruby-11'">
         {{ providerValidation ? t('RAGENT.RES.TEST_OK') : t('RAGENT.RES.TEST_FAILED') }}
       </p>
-      <Button
-        v-if="key === 'providers'"
-        variant="faded"
-        :label="t('RAGENT.RES.ACTIONS.TEST')"
-        :disabled="busy"
-        @click="validateProviderKey()"
-      />
       <div class="flex flex-wrap justify-end gap-2">
         <Button v-if="key === 'providers'" variant="faded" color="slate" :label="t('RAGENT.RES.GW.CANCEL')" @click="closeCreate" />
         <Button :label="t('RAGENT.RES.SAVE')" :disabled="busy || (key === 'providers' && !form.api_key)" @click="submit" />

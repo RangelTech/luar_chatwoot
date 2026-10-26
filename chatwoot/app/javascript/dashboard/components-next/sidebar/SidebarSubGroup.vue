@@ -66,7 +66,7 @@ const isScrollable = computed(() => {
   return (
     props.isExpanded &&
     isSubGroupExpanded.value &&
-    accessibleItems.value.length > 7
+    accessibleItems.value.length > 10
   );
 });
 
