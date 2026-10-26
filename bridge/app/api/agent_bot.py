@@ -670,7 +670,8 @@ async def _deliver_artifacts(
     reply text (see qa-02 seção 4); only "image" had no fallback at all.
     """
     for artifact in artifacts:
-        if artifact.get("kind") != "image":
+        # imagens e arquivos (planilha, PDF) viram anexo da conversa; so ignora tipo desconhecido
+        if artifact.get("kind") not in ("image", "file"):
             continue
         try:
             data, content_type, filename = await kernel.fetch_artifact(
