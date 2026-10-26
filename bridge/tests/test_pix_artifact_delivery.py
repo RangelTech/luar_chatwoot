@@ -154,7 +154,7 @@ def test_a_failed_artifact_fetch_does_not_lose_the_text_reply(client, tenant_id,
     assert len(sent_texts) == 1
 
 
-def test_non_image_artifacts_are_not_sent_as_attachments(client, tenant_id, monkeypatch):
+def test_file_artifacts_are_sent_as_attachments(client, tenant_id, monkeypatch):
     """Kind != image (ex.: "file") continua com o caminho de link/download já
     existente, não deve nem tentar baixar bytes aqui."""
     from app.services import chatwoot, kernel, tenants
@@ -195,4 +195,5 @@ def test_non_image_artifacts_are_not_sent_as_attachments(client, tenant_id, monk
 
     payload = {"conversation": {"id": 4003, "inbox_id": 11}, "content": "quero o relatorio"}
     asyncio.run(_handle_message(tenant_id, 7, payload))
-    assert fetched == []
+    # Spec 12: planilha/PDF gerados no ambiente do tenant chegam como anexo (antes so imagem)
+    assert fetched == ["art-file"]
