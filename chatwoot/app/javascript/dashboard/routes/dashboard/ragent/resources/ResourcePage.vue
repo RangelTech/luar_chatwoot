@@ -128,6 +128,52 @@ const providerAccounts = computed(() =>
   [...(selectedProviderGroup.value?.items || [])].sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0))
 );
 const openProviderDetail = provider => { selectedProviderId.value = provider.id; };
+const testResults = ref({});
+const editingAccount = ref(null);
+const moveAccount = async (it, delta) => {
+  const ordered = providerAccounts.value;
+  const i = ordered.findIndex(x => x.id === it.id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= ordered.length) return;
+  const next = [...ordered];
+  [next[i], next[j]] = [next[j], next[i]];
+  busy.value = true;
+  try {
+    await Promise.all(next.map((item, index) => axios.put(`${base.value}/${item.id}`, { priority: index + 1 })));
+    await load();
+  } finally {
+    busy.value = false;
+  }
+};
+const testOneByOne = async () => {
+  testResults.value = {};
+  for (const it of providerAccounts.value) {
+    testResults.value = { ...testResults.value, [it.id]: 'running' };
+    try {
+      const { data } = await axios.post(`${base.value}/${it.id}/test`);
+      testResults.value = { ...testResults.value, [it.id]: data?.ok === false || data?.valid === false ? 'fail' : 'ok' };
+    } catch (e) {
+      testResults.value = { ...testResults.value, [it.id]: 'fail' };
+    }
+  }
+};
+const openEditAccount = it => {
+  editingAccount.value = { id: it.id, name: it.name || '', priority: it.priority || 1, api_key: '' };
+};
+const saveEditAccount = async () => {
+  const e = editingAccount.value;
+  if (!e) return;
+  busy.value = true;
+  try {
+    const body = { name: e.name, priority: Number(e.priority) || 1 };
+    if (e.api_key) body.api_key = e.api_key;
+    await axios.put(`${base.value}/${e.id}`, body);
+    editingAccount.value = null;
+    await load();
+  } finally {
+    busy.value = false;
+  }
+};
 const closeProviderDetail = () => { selectedProviderId.value = null; draggingProviderAccountId.value = null; };
 
 // Valor de célula legível: data em pt-BR, número com separador, situação com rótulo; objeto nunca vira JSON.
@@ -728,7 +774,7 @@ const deleteCustomProviderModel = async model => {
       <header class="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="faded" :label="t('RAGENT.RES.PROVIDER_BACK')" @click="closeProviderDetail" />
         <div class="min-w-0 flex-1"><p class="text-sm text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_DETAIL') }}</p><h2 class="flex items-center gap-3 text-heading-2 text-n-slate-12"><span class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 ring-1 ring-n-weak"><img v-if="!logoFailed[selectedProviderGroup.provider.id]" :src="providerLogo(selectedProviderGroup.provider.id)" alt="" class="size-full object-contain" @error="logoFailed[selectedProviderGroup.provider.id] = true" /></span>{{ selectedProviderGroup.provider.name }}</h2></div>
-        <Button v-if="canManage" size="sm" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(selectedProviderGroup.provider)" />
+        
       </header>
       <p
         v-if="selectedProviderGroup.provider.risk_notice"
@@ -738,17 +784,68 @@ const deleteCustomProviderModel = async model => {
         {{ t('RAGENT.RES.PROVIDER_RISK_NOTICE') }}
       </p>
       <p class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_ORDER_HELP') }}</p>
-      <ul class="divide-y divide-n-weak">
-        <li v-for="it in providerAccounts" :key="it.id" :draggable="canManage" class="flex flex-wrap items-center gap-2 py-3" @dragstart="canManage && (draggingProviderAccountId = it.id)" @dragover.prevent @drop="canManage && reorderProviderAccounts(it.id)">
-          <span class="i-lucide-grip-vertical text-n-slate-10" aria-hidden="true" />
-          <span class="min-w-0 flex-1 text-n-slate-12">{{ it.name || it.model }}</span>
-          <span class="text-sm text-n-slate-11">{{ t('RAGENT.RES.PRIORITY', { n: it.priority || 0 }) }}</span>
-          <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.TEST')" @click="runItemAction(it, 'test')" />
-          <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.MODELS')" @click="loadProviderModels(it)" />
-          <Button size="sm" variant="faded" :disabled="busy" :label="t((it.is_active ?? it.isActive ?? true) ? 'RAGENT.RES.ACTIONS.DEACTIVATE' : 'RAGENT.RES.ACTIONS.ACTIVATE')" @click="toggleActive(it)" />
-          <Button size="sm" color="ruby" :label="t('RAGENT.RES.DELETE')" @click="remove(it)" />
-        </li>
-      </ul>
+      <div class="rounded-xl border border-n-weak">
+        <header class="flex flex-wrap items-center gap-2 border-b border-n-weak px-4 py-3">
+          <h3 class="text-heading-3 text-n-slate-12">{{ t('RAGENT.RES.PROVIDER_CONNECTIONS') }}</h3>
+          <div class="ms-auto flex flex-wrap items-center gap-2">
+            <Button v-if="canManage && providerAccounts.length" size="sm" variant="faded" icon="i-lucide-play" :disabled="busy" :label="t('RAGENT.RES.TEST_ONE_BY_ONE')" @click="testOneByOne" />
+          </div>
+        </header>
+        <ul class="divide-y divide-n-weak">
+          <li v-for="(it, idx) in providerAccounts" :key="it.id" class="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div v-if="canManage" class="flex flex-col">
+              <button type="button" class="leading-none text-n-slate-10 hover:text-n-slate-12 disabled:opacity-30" :disabled="busy || idx === 0" :aria-label="t('RAGENT.RES.MOVE_UP')" @click="moveAccount(it, -1)"><span class="i-lucide-chevron-up size-4" /></button>
+              <button type="button" class="leading-none text-n-slate-10 hover:text-n-slate-12 disabled:opacity-30" :disabled="busy || idx === providerAccounts.length - 1" :aria-label="t('RAGENT.RES.MOVE_DOWN')" @click="moveAccount(it, 1)"><span class="i-lucide-chevron-down size-4" /></button>
+            </div>
+            <span class="i-lucide-lock size-4 text-n-slate-10" aria-hidden="true" />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-n-slate-12">{{ it.name || it.model }}</p>
+              <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="(it.is_active ?? it.isActive ?? true) ? 'bg-n-teal-3 text-n-teal-11' : 'bg-n-alpha-2 text-n-slate-11'">{{ t((it.is_active ?? it.isActive ?? true) ? 'RAGENT.RES.STATE_ACTIVE' : 'RAGENT.RES.STATE_OFF') }}</span>
+                <span class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11">{{ it.auth_type === 'oauth' ? 'OAuth' : (it.auth_type === 'apikey' ? t('RAGENT.RES.PROVIDER_SECTION.APIKEY') : (selectedProviderGroup.provider.has_oauth ? 'OAuth' : t('RAGENT.RES.PROVIDER_SECTION.APIKEY'))) }}</span>
+                <span class="text-xs text-n-slate-10">#{{ it.priority || idx + 1 }}</span>
+                <span v-if="testResults[it.id] === 'running'" class="text-xs text-n-slate-11">{{ t('RAGENT.RES.TESTING') }}</span>
+                <span v-else-if="testResults[it.id] === 'ok'" class="text-xs font-medium text-n-teal-11">{{ t('RAGENT.RES.TEST_OK') }}</span>
+                <span v-else-if="testResults[it.id] === 'fail'" class="text-xs font-medium text-n-ruby-11">{{ t('RAGENT.RES.TEST_FAILED') }}</span>
+                <span v-if="it.last_error || it.test_status === 'error'" class="max-w-full truncate text-xs text-n-ruby-11" :title="it.last_error">{{ it.last_error }}</span>
+              </div>
+            </div>
+            <template v-if="canManage && it.id">
+              <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.TEST')" @click="runItemAction(it, 'test')" />
+              <Button size="sm" variant="faded" :disabled="busy" :label="t('RAGENT.RES.ACTIONS.MODELS')" @click="loadProviderModels(it)" />
+              <Button size="sm" variant="faded" :disabled="busy" icon="i-lucide-pencil" :aria-label="t('RAGENT.RES.EDIT')" @click="openEditAccount(it)" />
+              <Button size="sm" variant="faded" color="ruby" icon="i-lucide-trash-2" :aria-label="t('RAGENT.RES.DELETE')" @click="remove(it)" />
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="(it.is_active ?? it.isActive ?? true) ? 'true' : 'false'"
+                :aria-label="t('RAGENT.RES.STATE_ACTIVE')"
+                class="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50"
+                :class="(it.is_active ?? it.isActive ?? true) ? 'bg-n-teal-9' : 'bg-n-slate-6'"
+                :disabled="busy"
+                @click="toggleActive(it)"
+              >
+                <span class="absolute top-0.5 size-5 rounded-full bg-white shadow transition-all" :class="(it.is_active ?? it.isActive ?? true) ? 'left-[22px]' : 'left-0.5'" />
+              </button>
+            </template>
+          </li>
+        </ul>
+        <div v-if="canManage" class="border-t border-n-weak px-4 py-3">
+          <Button icon="i-lucide-plus" :label="t('RAGENT.RES.ADD_ACCOUNT')" @click="startProviderConnection(selectedProviderGroup.provider)" />
+        </div>
+      </div>
+      <div v-if="editingAccount" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" @keydown.esc="editingAccount = null" @click.self="editingAccount = null">
+        <section class="flex w-full max-w-md flex-col gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-6 shadow-2xl">
+          <h2 class="text-heading-2 text-n-slate-12">{{ t('RAGENT.RES.EDIT') }}</h2>
+          <label class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.FIELDS.NAME') }}<input v-model="editingAccount.name" class="!mb-0 w-full" /></label>
+          <label class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PRIORITY', { n: '' }) }}<input v-model="editingAccount.priority" type="number" min="1" class="!mb-0 w-full" /></label>
+          <label class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.FIELDS.API_KEY') }}<input v-model="editingAccount.api_key" type="password" autocomplete="new-password" class="!mb-0 w-full" :placeholder="t('RAGENT.RES.KEEP_KEY')" /></label>
+          <div class="flex justify-end gap-2">
+            <Button variant="faded" color="slate" :label="t('RAGENT.RES.GW.CANCEL')" @click="editingAccount = null" />
+            <Button :disabled="busy" :label="t('RAGENT.RES.SAVE')" @click="saveEditAccount" />
+          </div>
+        </section>
+      </div>
       <p v-if="!providerAccounts.length" class="text-body-main text-n-slate-11">{{ t('RAGENT.RES.PROVIDER_NOT_CONNECTED') }}</p>
     </section>
     <div v-if="key === 'providers' && providerGroups.length && !selectedProviderGroup" class="flex flex-col gap-8">
