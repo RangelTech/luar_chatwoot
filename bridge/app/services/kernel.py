@@ -17,7 +17,8 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# tarefas pesadas no ambiente do tenant (planilha, grafico, Metabase) levam minutos; o kernel ja limita a execucao
+# tarefas pesadas no ambiente do tenant (planilha, grafico, Metabase) levam minutos;
+# o kernel ja limita a execucao
 TIMEOUT = float(os.getenv("KERNEL_TIMEOUT_S", "1500"))
 
 # Convenção de handoff: o agente termina a resposta com este marcador quando
