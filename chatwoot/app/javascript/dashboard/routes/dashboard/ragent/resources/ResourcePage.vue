@@ -107,6 +107,7 @@ const startOauth = id => {
   oauthProvider.value = id;
   showOauth.value = true;
 };
+const selectedProviderCatalog = computed(() => providerCatalog.value.find(p => p.id === form.value.provider) || null);
 const closeCreate = () => {
   creating.value = false;
   showOauth.value = false;
@@ -117,6 +118,7 @@ const startProviderConnection = provider => {
     provider: provider.id,
     name: provider.name,
     model: provider.models?.[0]?.id || '',
+    priority: ((items.value || []).filter(it => String(it.provider) === String(provider.id)).length || 0) + 1,
   };
   creating.value = true;
 };
@@ -333,6 +335,13 @@ const submit = async () => {
       if (v === undefined || v === '') return;
       body[f.key] = f.json ? JSON.parse(v) : v;
     });
+    if (key.value === 'providers') {
+      if (form.value.priority) body.priority = Number(form.value.priority);
+      if (form.value.base_url) body.base_url = form.value.base_url;
+      body.provider = form.value.provider;
+      body.model = form.value.model;
+      body.name = form.value.name;
+    }
     const { data } = await axios.post(base.value, body);
     newKey.value = data?.api_key || '';
     form.value = {};
@@ -708,8 +717,7 @@ const deleteCustomProviderModel = async model => {
           <span v-else class="text-sm font-semibold text-n-slate-12">{{ String(form.provider || '?').slice(0, 2).toUpperCase() }}</span>
         </span>
         <div class="min-w-0 flex-1">
-          <h2 class="truncate text-heading-2 text-n-slate-12">{{ t('RAGENT.RES.ADD_ACCOUNT') }}</h2>
-          <p class="truncate text-sm text-n-slate-11">{{ form.name }}</p>
+          <h2 class="truncate text-heading-2 text-n-slate-12">{{ t('RAGENT.RES.ADD_KEY_TITLE', { name: selectedProviderCatalog?.name || form.provider }) }}</h2>
         </div>
         <Button size="sm" variant="faded" color="slate" icon="i-lucide-x" :aria-label="t('RAGENT.RES.GW.CANCEL')" @click="closeCreate" />
       </header>
@@ -718,7 +726,28 @@ const deleteCustomProviderModel = async model => {
         <Button :label="t('RAGENT.RES.GW.OAUTH.BUTTON')" @click="startOauth(form.provider)" />
         <p class="text-center text-sm text-n-slate-10">{{ t('RAGENT.RES.OR_API_KEY') }}</p>
       </div>
-      <label v-for="f in config.fields" :key="f.key" class="text-body-main text-n-slate-11">
+      <div v-if="key === 'providers'" class="flex flex-col gap-4" data-testid="provider-add-form">
+        <label class="text-body-main text-n-slate-11">
+          {{ t('RAGENT.RES.FIELDS.NAME') }}
+          <input v-model="form.name" type="text" class="!mb-0 w-full" :placeholder="t('RAGENT.RES.PROVIDER_NAME_PLACEHOLDER')" autocomplete="off" />
+        </label>
+        <label class="text-body-main text-n-slate-11">
+          {{ t('RAGENT.RES.FIELDS.API_KEY') }}
+          <span class="mt-1 flex gap-2">
+            <input v-model="form.api_key" type="password" autocomplete="new-password" class="!mb-0 min-w-0 flex-1" />
+            <Button variant="faded" :disabled="busy || !form.api_key" :label="t('RAGENT.RES.CHECK')" @click="validateProviderKey()" />
+          </span>
+        </label>
+        <label class="text-body-main text-n-slate-11">
+          {{ t('RAGENT.RES.PRIORITY_LABEL') }}
+          <input v-model="form.priority" type="number" min="1" class="!mb-0 w-full" />
+        </label>
+        <label v-if="selectedProviderCatalog?.category === 'custom'" class="text-body-main text-n-slate-11">
+          {{ t('RAGENT.RES.FIELDS.BASE_URL') }}
+          <input v-model="form.base_url" type="text" class="!mb-0 w-full" autocomplete="off" />
+        </label>
+      </div>
+      <label v-for="f in (key === 'providers' ? [] : config.fields)" :key="f.key" class="text-body-main text-n-slate-11">
         {{ t(`RAGENT.RES.FIELDS.${f.label}`) }}
         <!-- A lista não pode ser a allowlist antiga e curta: ao abrir um cartão
              do catálogo (ex.: Codex), a conta criada precisa permanecer naquele
@@ -751,7 +780,7 @@ const deleteCustomProviderModel = async model => {
       />
       <div class="flex flex-wrap justify-end gap-2">
         <Button v-if="key === 'providers'" variant="faded" color="slate" :label="t('RAGENT.RES.GW.CANCEL')" @click="closeCreate" />
-        <Button :label="t('RAGENT.RES.SAVE')" :disabled="busy" @click="submit" />
+        <Button :label="t('RAGENT.RES.SAVE')" :disabled="busy || (key === 'providers' && !form.api_key)" @click="submit" />
       </div>
     </section>
     </div>
