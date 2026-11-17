@@ -9,6 +9,8 @@ outro tenant sao ignoradas (nunca ha mapeamento cruzado).
 from __future__ import annotations
 
 import re
+import contextvars
+import hashlib
 import secrets
 from datetime import UTC, datetime
 from typing import Any
@@ -23,6 +25,9 @@ from app.config import settings
 
 GHOST_PREFIX = "@"  # fantasmas das bridges: o remetente real e quem NAO e o usuario Luar
 
+
+# chave de idempotencia do envio em curso (definida pelo Gateway._deliver_send)
+IDEMPOTENCIA: contextvars.ContextVar[str] = contextvars.ContextVar("idempotencia_envio", default="")
 
 def _event_to_message(event: dict[str, Any], binding: dict, conn: dict) -> InboundMessage | None:
     if event.get("type") != "m.room.message":
@@ -211,7 +216,9 @@ class MatrixSender:
         content: dict[str, Any] = {"msgtype": "m.text", "body": text}
         if reply_to:
             content["m.relates_to"] = {"m.in_reply_to": {"event_id": reply_to}}
-        txn = secrets.token_hex(8)
+        # mesma mensagem = mesmo txn: se a 1a tentativa entregou mas devolveu erro/timeout, o Synapse descarta o reenvio
+        chave = IDEMPOTENCIA.get()
+        txn = hashlib.sha256(chave.encode()).hexdigest()[:32] if chave else secrets.token_hex(8)
         url = (
             f"{settings.matrix_homeserver_url}/_matrix/client/v3/rooms/{room}/send/"
             f"m.room.message/{txn}"

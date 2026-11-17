@@ -421,6 +421,8 @@ class Gateway:
 
     async def _deliver_send(self, row: dict, out: dict) -> dict:
         p = out["payload"]
+        from app.channels.appservice import IDEMPOTENCIA
+        IDEMPOTENCIA.set(out.get("idempotency_key") or "")
         try:
             ext = await self._adapter(row["provider"]).send(
                 _ctx(row),
