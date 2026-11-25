@@ -1,3 +1,42 @@
+<!-- readme-padrao -->
+# LUAR: telas e canais (Chatwoot)
+
+> Telas de atendimento, Kanban e canais do LUAR, sobre o Chatwoot, mais a ponte (bridge) com o motor de IA.
+
+![Tela principal](docs/img/principal.webp)
+
+## O que é
+Telas de atendimento, Kanban e canais do LUAR, sobre o Chatwoot, mais a ponte (bridge) com o motor de IA.
+
+Estado: **no ar (LUAR em preparo)**.
+
+## Onde está no ar
+- https://chat.rangeltech.net
+
+## Onde faz o deploy
+Este repositório **só publica** o artefato (release com imagem e manifesto); **quem implanta é o `vps_rt_infra`**.
+
+- Serviço `chatwoot-rails`: `gh workflow run deploy.yml --repo RangelTech/vps_rt_infra -f service=chatwoot-rails` (só validar: `-f dry_run=true`; voltar versão: `-f version=<tag-antiga>`)
+- Serviço `chatwoot-bridge`: `gh workflow run deploy.yml --repo RangelTech/vps_rt_infra -f service=chatwoot-bridge` (só validar: `-f dry_run=true`; voltar versão: `-f version=<tag-antiga>`)
+
+Os `.env` desses serviços são gerados do Infisical no momento do deploy (spec 57, seção 0A).
+
+## Como funciona por dentro
+Resumo acima; os detalhes estão nas notas técnicas (README anterior) abaixo e na spec 57.
+
+## Segredos
+Nenhum valor de segredo fica neste repositório. Os segredos dos serviços ficam no Infisical (mapa em `vps_rt_infra/scripts/infisical/mapa_envs.json`) e chegam à VPS gerados no deploy.
+
+## Rodar e testar localmente
+Ver as notas técnicas abaixo (cada repositório tem o seu jeito); os testes de QA em produção são por cliques reais, com evidência em `new_ragente/qa/evidencias`.
+
+## Links
+- Repositório: https://github.com/RangelTech/luar_chatwoot
+- Painel único: https://painel.rangeltech.net
+- Spec de organização geral: `new_ragente/specs/57_ORGANIZACAO_GERAL_PRODUTOS_E_PAINEL.md`
+
+## Notas técnicas (README anterior)
+
 # luar_chatwoot
 
 O produto Luar que o cliente enxerga: caixa de entrada, conversas, Kanban, telas de IA, identidade e marca. É um fork do Chatwoot Community (versão base 4.17.1) com uma ponte própria (`bridge/`) que fala com o motor de IA e com os canais.
